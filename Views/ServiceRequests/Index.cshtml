@@ -1,0 +1,79 @@
+@model IEnumerable<TechMove.Models.ServiceRequest>
+
+@{
+    ViewData["Title"] = "Service Requests";
+}
+
+<div class="space-y-6">
+
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">Service Requests</h1>
+            <p class="text-slate-500 mt-1">Manage international logistics requests and currency conversion.</p>
+        </div>
+
+        <a asp-action="Create"
+           class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl text-sm font-semibold shadow-sm transition">
+            + New Service Request
+        </a>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+
+        @if (!Model.Any())
+        {
+            <div class="p-8 text-center">
+                <h3 class="text-lg font-semibold text-slate-900">No service requests found</h3>
+                <p class="text-slate-500 mt-1">Create a service request linked to an active contract.</p>
+            </div>
+        }
+        else
+        {
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="text-left px-6 py-4 font-semibold text-slate-600">Description</th>
+                        <th class="text-left px-6 py-4 font-semibold text-slate-600">Cost USD</th>
+                        <th class="text-left px-6 py-4 font-semibold text-slate-600">Cost ZAR</th>
+                        <th class="text-left px-6 py-4 font-semibold text-slate-600">Status</th>
+                        <th class="text-left px-6 py-4 font-semibold text-slate-600">Contract</th>
+                        <th class="text-right px-6 py-4 font-semibold text-slate-600">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody class="divide-y divide-slate-100">
+                    @foreach (var item in Model)
+                    {
+                        var statusClass = item.Status?.ToLower() switch
+                        {
+                            "new" => "bg-blue-100 text-blue-700",
+                            "pending" => "bg-yellow-100 text-yellow-700",
+                            "completed" => "bg-green-100 text-green-700",
+                            "cancelled" => "bg-red-100 text-red-700",
+                            _ => "bg-slate-100 text-slate-700"
+                        };
+
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="px-6 py-4 font-medium text-slate-900">@item.Description</td>
+                            <td class="px-6 py-4 text-slate-600">$@item.CostUSD.ToString("N2")</td>
+                            <td class="px-6 py-4 text-slate-600">R @item.CostZAR.ToString("N2")</td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold @statusClass">
+                                    @item.Status
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-slate-600">@item.Contract?.ServiceLevel</td>
+                            <td class="px-6 py-4 text-right space-x-3">
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</a>
+                                <a asp-action="Details" asp-route-id="@item.Id" class="text-slate-600 hover:text-slate-900 font-medium">Details</a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="text-red-600 hover:text-red-800 font-medium">Delete</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+    </div>
+
+</div>

@@ -1,0 +1,92 @@
+@model TechMove.Models.Client
+
+@{
+    ViewData["Title"] = "Client Details";
+}
+
+<div class="max-w-3xl mx-auto space-y-6">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">
+                Client Details
+            </h1>
+
+            <p class="text-slate-500 mt-1">
+                View client information.
+            </p>
+        </div>
+
+        <a asp-action="Edit"
+           asp-route-id="@Model?.Id"
+           class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl text-sm font-semibold transition">
+
+            Edit Client
+
+        </a>
+
+    </div>
+
+    <!-- Details Card -->
+    <div class="bg-white border border-slate-200 rounded-3xl shadow-sm p-8">
+
+        <dl class="space-y-6">
+
+            <!-- Name -->
+            <div>
+
+                <dt class="text-sm font-semibold text-slate-500">
+                    Name
+                </dt>
+
+                <dd class="text-lg font-medium text-slate-900 mt-1">
+                    @Model?.Name
+                </dd>
+
+            </div>
+
+            <!-- Contact -->
+            <div>
+
+                <dt class="text-sm font-semibold text-slate-500">
+                    Contact Details
+                </dt>
+
+                <dd class="text-lg font-medium text-slate-900 mt-1">
+                    @Model?.ContactDetails
+                </dd>
+
+            </div>
+
+            <!-- Region -->
+            <div>
+
+                <dt class="text-sm font-semibold text-slate-500">
+                    Region
+                </dt>
+
+                <dd class="text-lg font-medium text-slate-900 mt-1">
+                    @Model?.Region
+                </dd>
+
+            </div>
+
+        </dl>
+
+    </div>
+
+    <!-- Back Button -->
+    <div class="pt-4">
+
+        <a asp-action="Index"
+           class="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-semibold transition">
+
+            ← Back to Clients
+
+        </a>
+
+    </div>
+
+</div>

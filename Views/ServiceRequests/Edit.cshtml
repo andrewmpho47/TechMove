@@ -1,0 +1,156 @@
+@model TechMove.Models.ServiceRequest
+
+@{
+    ViewData["Title"] = "Edit Service Request";
+}
+
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">
+                Edit Service Request
+            </h1>
+
+            <p class="text-slate-500 mt-1">
+                Update logistics request details and recalculate ZAR value.
+            </p>
+        </div>
+
+        <a asp-action="Index"
+           class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl text-sm font-semibold transition">
+            Back to Requests
+        </a>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-3xl shadow-sm p-8">
+
+        <form asp-action="Edit" class="space-y-6">
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl p-4">
+            </div>
+
+            <input type="hidden" asp-for="Id" />
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <div class="md:col-span-2">
+                    <label asp-for="Description"
+                           class="block text-sm font-semibold text-slate-700 mb-2">
+                        Description
+                    </label>
+
+                    <textarea asp-for="Description"
+                              rows="4"
+                              class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"></textarea>
+
+                    <span asp-validation-for="Description"
+                          class="text-red-600 text-sm">
+                    </span>
+                </div>
+
+                <div>
+                    <label asp-for="CostUSD"
+                           class="block text-sm font-semibold text-slate-700 mb-2">
+                        Amount USD
+                    </label>
+
+                    <input asp-for="CostUSD"
+                           class="w-full h-12 rounded-xl border border-slate-300 px-4 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none" />
+
+                    <p class="text-xs text-slate-500 mt-2">
+                        Updating this amount will recalculate the ZAR value after saving.
+                    </p>
+
+                    <span asp-validation-for="CostUSD"
+                          class="text-red-600 text-sm">
+                    </span>
+                </div>
+
+                <div>
+                    <label asp-for="CostZAR"
+                           class="block text-sm font-semibold text-slate-700 mb-2">
+                        Amount ZAR
+                    </label>
+
+                    <input asp-for="CostZAR"
+                           readonly
+                           class="w-full h-12 rounded-xl border border-slate-300 bg-slate-100 px-4 text-sm text-slate-500 shadow-sm outline-none" />
+
+                    <p class="text-xs text-slate-500 mt-2">
+                        This value is automatically calculated using the exchange rate.
+                    </p>
+
+                    <span asp-validation-for="CostZAR"
+                          class="text-red-600 text-sm">
+                    </span>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">
+                        Service Request Status
+                    </label>
+
+                    <select asp-for="Status"
+                            class="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none">
+
+                        <option value="">-- Select Status --</option>
+                        <option value="New">New</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+
+                    </select>
+
+                    <span asp-validation-for="Status"
+                          class="text-red-600 text-sm">
+                    </span>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">
+                        Contract Status
+                    </label>
+
+                    <select asp-for="ContractId"
+                            asp-items="ViewBag.ContractId"
+                            class="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none">
+                    </select>
+
+                    <p class="text-xs text-slate-500 mt-2">
+                        Requests cannot be created for Expired or On Hold contracts.
+                    </p>
+
+                    <span asp-validation-for="ContractId"
+                          class="text-red-600 text-sm">
+                    </span>
+                </div>
+
+            </div>
+
+            <div class="flex gap-3 pt-4">
+
+                <button type="submit"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl text-sm font-semibold transition">
+                    Save Changes
+                </button>
+
+                <a asp-action="Index"
+                   class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 py-3 rounded-xl text-sm font-semibold transition">
+                    Cancel
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

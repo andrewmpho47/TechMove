@@ -1,0 +1,194 @@
+@model TechMove.Models.Contract
+
+@{
+    ViewData["Title"] = "Delete Contract";
+}
+
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+
+        <div>
+            <h1 class="text-3xl font-bold text-red-700">
+                Delete Contract
+            </h1>
+
+            <p class="text-slate-500 mt-1">
+                Confirm contract deletion before proceeding.
+            </p>
+        </div>
+
+        <a asp-action="Index"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl text-sm font-semibold transition">
+
+            Back to Contracts
+
+        </a>
+
+    </div>
+
+    <!-- Warning -->
+    <div class="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-5">
+
+        <div class="font-semibold text-lg">
+            Warning
+        </div>
+
+        <p class="mt-1 text-sm">
+            Are you sure you want to permanently delete this contract?
+            This action cannot be undone.
+        </p>
+
+    </div>
+
+    <!-- Details Card -->
+    <div class="bg-white border border-slate-200 rounded-3xl shadow-sm p-8">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+            <!-- Client -->
+            <div>
+                <p class="text-sm font-semibold text-slate-500 mb-2">
+                    Client
+                </p>
+
+                <p class="text-lg font-semibold text-slate-900">
+                    @Model?.Client?.Name
+                </p>
+            </div>
+
+            <!-- Contact -->
+            <div>
+                <p class="text-sm font-semibold text-slate-500 mb-2">
+                    Client Contact
+                </p>
+
+                <p class="text-lg font-semibold text-slate-900">
+                    @Model?.Client?.ContactDetails
+                </p>
+            </div>
+
+            <!-- Start Date -->
+            <div>
+                <p class="text-sm font-semibold text-slate-500 mb-2">
+                    Start Date
+                </p>
+
+                <p class="text-lg font-semibold text-slate-900">
+                    @Model?.StartDate.ToString("yyyy/MM/dd")
+                </p>
+            </div>
+
+            <!-- End Date -->
+            <div>
+                <p class="text-sm font-semibold text-slate-500 mb-2">
+                    End Date
+                </p>
+
+                <p class="text-lg font-semibold text-slate-900">
+                    @Model?.EndDate.ToString("yyyy/MM/dd")
+                </p>
+            </div>
+
+            <!-- Status -->
+            <div>
+
+                <p class="text-sm font-semibold text-slate-500 mb-2">
+                    Status
+                </p>
+
+                @{
+                    var statusClass = Model?.Status?.ToLower() switch
+                    {
+                        "active" => "bg-green-100 text-green-700",
+                        "pending" => "bg-yellow-100 text-yellow-700",
+                        "expired" => "bg-red-100 text-red-700",
+                        "on hold" => "bg-orange-100 text-orange-700",
+                        _ => "bg-slate-100 text-slate-700"
+                    };
+                }
+
+                <span class="px-3 py-1 rounded-full text-sm font-semibold @statusClass">
+                    @Model?.Status
+                </span>
+
+            </div>
+
+            <!-- Service Level -->
+            <div>
+                <p class="text-sm font-semibold text-slate-500 mb-2">
+                    Service Level
+                </p>
+
+                <p class="text-lg font-semibold text-slate-900">
+                    @Model?.ServiceLevel
+                </p>
+            </div>
+
+            <!-- Agreement -->
+            <div class="md:col-span-2">
+
+                <p class="text-sm font-semibold text-slate-500 mb-3">
+                    Signed Agreement
+                </p>
+
+                @if (!string.IsNullOrEmpty(Model?.AgreementFilePath))
+                {
+                    <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4">
+
+                        <div>
+                            <p class="font-semibold text-slate-800">
+                                PDF Agreement Uploaded
+                            </p>
+
+                            <p class="text-sm text-slate-500">
+                                Contract agreement document available.
+                            </p>
+                        </div>
+
+                        <a href="@Model.AgreementFilePath"
+                           download
+                           class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition">
+
+                            Download PDF
+
+                        </a>
+
+                    </div>
+                }
+                else
+                {
+                    <div class="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4">
+                        No agreement PDF uploaded.
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+        <!-- Delete Form -->
+        <form asp-action="Delete" class="flex gap-3 pt-8">
+
+            <input type="hidden" asp-for="Id" />
+
+            <button type="submit"
+                    class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl text-sm font-semibold transition">
+
+                Delete Contract
+
+            </button>
+
+            <a asp-action="Index"
+               class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 py-3 rounded-xl text-sm font-semibold transition">
+
+                Cancel
+
+            </a>
+
+        </form>
+
+    </div>
+
+</div>

@@ -1,0 +1,120 @@
+@model TechMove.Models.ServiceRequest
+
+@{
+    ViewData["Title"] = "Service Request Details";
+}
+
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <div class="flex items-center justify-between">
+
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">
+                Service Request Details
+            </h1>
+
+            <p class="text-slate-500 mt-1">
+                View logistics request and currency conversion information.
+            </p>
+        </div>
+
+        <a asp-action="Edit"
+           asp-route-id="@Model?.Id"
+           class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl text-sm font-semibold transition">
+
+            Edit Request
+
+        </a>
+
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-3xl shadow-sm p-8">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+            <!-- Description -->
+            <div class="md:col-span-2">
+
+                <p class="text-sm font-semibold text-slate-500 mb-2">
+                    Description
+                </p>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-slate-700 leading-relaxed">
+                    @Model?.Description
+                </div>
+
+            </div>
+
+            <!-- USD -->
+            <div>
+                <p class="text-sm font-semibold text-slate-500 mb-2">
+                    Cost USD
+                </p>
+
+                <p class="text-2xl font-bold text-slate-900">
+                    $@Model?.CostUSD.ToString("N2")
+                </p>
+            </div>
+
+            <!-- ZAR -->
+            <div>
+                <p class="text-sm font-semibold text-slate-500 mb-2">
+                    Cost ZAR
+                </p>
+
+                <p class="text-2xl font-bold text-slate-900">
+                    R @Model?.CostZAR.ToString("N2")
+                </p>
+            </div>
+
+            <!-- Status -->
+            <div>
+
+                <p class="text-sm font-semibold text-slate-500 mb-2">
+                    Status
+                </p>
+
+                @{
+                    var statusClass = Model?.Status?.ToLower() switch
+                    {
+                        "new" => "bg-blue-100 text-blue-700",
+                        "pending" => "bg-yellow-100 text-yellow-700",
+                        "completed" => "bg-green-100 text-green-700",
+                        "cancelled" => "bg-red-100 text-red-700",
+                        _ => "bg-slate-100 text-slate-700"
+                    };
+                }
+
+                <span class="px-3 py-1 rounded-full text-sm font-semibold @statusClass">
+                    @Model?.Status
+                </span>
+
+            </div>
+
+            <!-- Contract -->
+            <div>
+                <p class="text-sm font-semibold text-slate-500 mb-2">
+                    Linked Contract
+                </p>
+
+                <p class="text-lg font-semibold text-slate-900">
+                    @Model?.Contract?.ServiceLevel
+                </p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="pt-2">
+
+        <a asp-action="Index"
+           class="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-semibold transition">
+
+            ← Back to Service Requests
+
+        </a>
+
+    </div>
+
+</div>

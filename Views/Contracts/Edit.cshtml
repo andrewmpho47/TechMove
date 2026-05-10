@@ -1,0 +1,183 @@
+@model TechMove.Models.Contract
+
+@{
+    ViewData["Title"] = "Edit Contract";
+}
+
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">
+                Edit Contract
+            </h1>
+
+            <p class="text-slate-500 mt-1">
+                Update contract details and agreement information.
+            </p>
+        </div>
+
+        <a asp-action="Index"
+           class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-3 rounded-xl text-sm font-semibold transition">
+            Back to Contracts
+        </a>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-3xl shadow-sm p-8">
+
+        <form asp-action="Edit" class="space-y-6">
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl p-4">
+            </div>
+
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="AgreementFilePath" />
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <div>
+                    <label asp-for="ClientId"
+                           class="block text-sm font-semibold text-slate-700 mb-2">
+                        Client
+                    </label>
+
+                    <select asp-for="ClientId"
+                            asp-items="ViewBag.ClientId"
+                            class="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none">
+                    </select>
+
+                    <span asp-validation-for="ClientId"
+                          class="text-red-600 text-sm">
+                    </span>
+                </div>
+
+                <div>
+                    <label asp-for="ServiceLevel"
+                           class="block text-sm font-semibold text-slate-700 mb-2">
+                        Service Level
+                    </label>
+
+                    <select asp-for="ServiceLevel"
+                            class="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none">
+
+                        <option value="">-- Select Service Level --</option>
+                        <option value="Standard">Standard</option>
+                        <option value="High">High</option>
+                        <option value="Premium">Premium</option>
+
+                    </select>
+
+                    <span asp-validation-for="ServiceLevel"
+                          class="text-red-600 text-sm">
+                    </span>
+                </div>
+
+                <div>
+                    <label asp-for="StartDate"
+                           class="block text-sm font-semibold text-slate-700 mb-2">
+                        Start Date
+                    </label>
+
+                    <input asp-for="StartDate"
+                           type="date"
+                           class="w-full h-12 rounded-xl border border-slate-300 px-4 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none" />
+
+                    <span asp-validation-for="StartDate"
+                          class="text-red-600 text-sm">
+                    </span>
+                </div>
+
+                <div>
+                    <label asp-for="EndDate"
+                           class="block text-sm font-semibold text-slate-700 mb-2">
+                        End Date
+                    </label>
+
+                    <input asp-for="EndDate"
+                           type="date"
+                           class="w-full h-12 rounded-xl border border-slate-300 px-4 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none" />
+
+                    <span asp-validation-for="EndDate"
+                          class="text-red-600 text-sm">
+                    </span>
+                </div>
+
+                <div>
+                    <label asp-for="Status"
+                           class="block text-sm font-semibold text-slate-700 mb-2">
+                        Status
+                    </label>
+
+                    <select asp-for="Status"
+                            class="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none">
+
+                        <option value="">-- Select Status --</option>
+                        <option value="pending">Pending</option>
+                        <option value="Active">Active</option>
+                        <option value="Expired">Expired</option>
+                        <option value="On Hold">On Hold</option>
+
+                    </select>
+
+                    <span asp-validation-for="Status"
+                          class="text-red-600 text-sm">
+                    </span>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">
+                        Signed Agreement
+                    </label>
+
+                    @if (!string.IsNullOrEmpty(Model.AgreementFilePath))
+                    {
+                        <div class="h-12 flex items-center justify-between rounded-xl border border-slate-300 bg-slate-50 px-4">
+                            <span class="text-sm text-slate-600">
+                                Existing PDF uploaded
+                            </span>
+
+                            <a href="@Model.AgreementFilePath"
+                               download
+                               class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">
+                                Download
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="h-12 flex items-center rounded-xl border border-slate-300 bg-slate-50 px-4">
+                            <span class="text-sm text-slate-500">
+                                No agreement uploaded
+                            </span>
+                        </div>
+                    }
+                </div>
+
+            </div>
+
+            <div class="flex gap-3 pt-4">
+
+                <button type="submit"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl text-sm font-semibold transition">
+                    Save Changes
+                </button>
+
+                <a asp-action="Index"
+                   class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 py-3 rounded-xl text-sm font-semibold transition">
+                    Cancel
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
