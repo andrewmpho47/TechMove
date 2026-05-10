@@ -1,0 +1,29 @@
+name: TechMove CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore TechMove.sln
+
+      - name: Build solution
+        run: dotnet build TechMove.sln --no-restore
+
+      - name: Run tests
+        run: dotnet test TechMove.sln --no-build --verbosity normal
