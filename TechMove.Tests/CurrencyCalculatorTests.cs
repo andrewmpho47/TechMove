@@ -19,7 +19,7 @@ namespace TechMove.Tests
         {
             var calculator = new CurrencyCalculator();
 
-            var result = calculator.ConvertUsdToZar(0, 18.50m);
+            var result = calculator.ConvertUsdToZar(0, 18.50m);  
 
             Assert.Equal(0m, result);
         }

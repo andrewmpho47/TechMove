@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TechMove.Data;
+using TechMove.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +12,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Add HttpClient for external API calls
 builder.Services.AddHttpClient();
 
-// Add services to the container
+// Add custom services
+builder.Services.AddScoped<ContractStateService>();
+
+// Add MVC
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();

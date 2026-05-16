@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TechMove.Data;
 using TechMove.Models;
+using TechMove.Services;
 
 namespace TechMove.Controllers
 {
@@ -11,13 +12,16 @@ namespace TechMove.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ContractStateService _contractStateService;
 
         public ServiceRequestsController(
             ApplicationDbContext context,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            ContractStateService contractStateService)
         {
             _context = context;
             _httpClientFactory = httpClientFactory;
+            _contractStateService = contractStateService;
         }
 
         public async Task<IActionResult> Index()
@@ -58,7 +62,7 @@ namespace TechMove.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(
-            [Bind("Id,Description,CostUSD,CostZAR,Status,ContractId")]
+            [Bind("Id,Description,CostUSD,Status,ContractId")]
             ServiceRequest serviceRequest)
         {
             var contract = await _context.Contracts
@@ -66,14 +70,14 @@ namespace TechMove.Controllers
 
             if (contract != null)
             {
-                var contractStatus = contract.Status?.Trim().ToLower();
+                var contractState =
+                    _contractStateService.GetState(contract.Status);
 
-                if (contractStatus == "expired" ||
-                    contractStatus == "on hold")
+                if (!contractState.CanCreateServiceRequest())
                 {
                     ModelState.AddModelError(
                         "",
-                        "Service Request cannot be created for Expired or On Hold contracts.");
+                        contractState.GetBlockedMessage());
                 }
             }
 
@@ -130,7 +134,7 @@ namespace TechMove.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(
             int id,
-            [Bind("Id,Description,CostUSD,CostZAR,Status,ContractId")]
+            [Bind("Id,Description,CostUSD,Status,ContractId")]
             ServiceRequest serviceRequest)
         {
             if (id != serviceRequest.Id)
@@ -215,30 +219,51 @@ namespace TechMove.Controllers
 
         private async Task<decimal> ConvertUsdToZar(decimal usdAmount)
         {
-            var client = _httpClientFactory.CreateClient();
-
-            var response = await client.GetAsync(
-                "https://open.er-api.com/v6/latest/USD");
-
-            if (!response.IsSuccessStatusCode)
+            try
             {
+                Console.WriteLine("API CALLED");
+
+                var client = _httpClientFactory.CreateClient();
+
+                var response = await client.GetAsync(
+                    "https://open.er-api.com/v6/latest/USD");
+
+                Console.WriteLine($"API STATUS: {response.StatusCode}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("API FAILED - USING FALLBACK");
+
+                    return usdAmount * 18;
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine("API RESPONSE RECEIVED");
+
+                var exchangeRateResponse =
+                    JsonSerializer.Deserialize<ExchangeRateResponse>(json);
+
+                if (exchangeRateResponse == null ||
+                    !exchangeRateResponse.Rates.ContainsKey("ZAR"))
+                {
+                    Console.WriteLine("INVALID API DATA - USING FALLBACK");
+
+                    return usdAmount * 18;
+                }
+
+                var zarRate = exchangeRateResponse.Rates["ZAR"];
+
+                Console.WriteLine($"ZAR RATE: {zarRate}");
+
+                return usdAmount * zarRate;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR: {ex.Message}");
+
                 return usdAmount * 18;
             }
-
-            var json = await response.Content.ReadAsStringAsync();
-
-            var exchangeRateResponse =
-                JsonSerializer.Deserialize<ExchangeRateResponse>(json);
-
-            if (exchangeRateResponse == null ||
-                !exchangeRateResponse.Rates.ContainsKey("ZAR"))
-            {
-                return usdAmount * 18;
-            }
-
-            var zarRate = exchangeRateResponse.Rates["ZAR"];
-
-            return usdAmount * zarRate;
         }
 
         private bool ServiceRequestExists(int id)
