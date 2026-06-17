@@ -29,3 +29,9 @@ jobs:
 
       - name: Run tests
         run: dotnet test TechMove.sln --no-build --verbosity normal
+
+      - name: Validate Docker Compose file
+        run: docker compose config
+
+      - name: Build Docker images
+        run: docker compose build techmove-backend-api techmove-frontend-web
