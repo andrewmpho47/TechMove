@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TechMove.Api;
@@ -16,6 +17,7 @@ namespace TechMove.Tests
         IClassFixture<WebApplicationFactory<ApiAssemblyMarker>>
     {
         private readonly HttpClient _client;
+        private const string TestApiKey = "Test-Api-Key";
 
         public ApiIntegrationTests(
             WebApplicationFactory<ApiAssemblyMarker> factory)
@@ -23,6 +25,13 @@ namespace TechMove.Tests
             _client = factory.WithWebHostBuilder(builder =>
             {
                 builder.UseEnvironment("Testing");
+                builder.ConfigureAppConfiguration(configuration =>
+                {
+                    configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        ["Authentication:ApiKey"] = TestApiKey
+                    });
+                });
                 builder.ConfigureServices(services =>
                 {
                     var databaseName = $"TechMoveTests-{Guid.NewGuid()}";
@@ -44,6 +53,8 @@ namespace TechMove.Tests
                     Seed(context);
                 });
             }).CreateClient();
+
+            _client.DefaultRequestHeaders.Add("X-Api-Key", TestApiKey);
         }
 
         [Fact]

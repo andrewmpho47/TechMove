@@ -25,6 +25,7 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      Authentication__ApiKey: "TechMove-Assessment-Key"
       ConnectionStrings__DefaultConnection: "Server=sql-server-db,1433;Database=TechMoveDB;User Id=sa;Password=TechMove_Pass123!;TrustServerCertificate=True;"
     ports:
       - "5001:8080"
@@ -39,6 +40,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ApiBaseUrl: "http://techmove-backend-api:8080/"
+      ApiKey: "TechMove-Assessment-Key"
     ports:
       - "5000:8080"
 

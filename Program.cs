@@ -8,6 +8,13 @@ builder.Services.AddHttpClient<TechMoveApiClient>(client =>
         ?? "http://localhost:5001/";
 
     client.BaseAddress = new Uri(apiBaseUrl);
+
+    var apiKey = builder.Configuration["ApiKey"];
+
+    if (!string.IsNullOrWhiteSpace(apiKey))
+    {
+        client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
+    }
 });
 
 // Add MVC
