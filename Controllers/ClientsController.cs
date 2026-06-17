@@ -1,22 +1,21 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TechMove.Data;
 using TechMove.Models;
+using TechMove.Services;
 
 namespace TechMove.Controllers
 {
     public class ClientsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly TechMoveApiClient _apiClient;
 
-        public ClientsController(ApplicationDbContext context)
+        public ClientsController(TechMoveApiClient apiClient)
         {
-            _context = context;
+            _apiClient = apiClient;
         }
 
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Clients.ToListAsync());
+            return View(await _apiClient.GetClientsAsync());
         }
 
         public async Task<IActionResult> Details(int? id)
@@ -26,15 +25,9 @@ namespace TechMove.Controllers
                 return NotFound();
             }
 
-            var client = await _context.Clients
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var client = await _apiClient.GetClientAsync(id.Value);
 
-            if (client == null)
-            {
-                return NotFound();
-            }
-
-            return View(client);
+            return client == null ? NotFound() : View(client);
         }
 
         public IActionResult Create()
@@ -44,19 +37,24 @@ namespace TechMove.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,ContactDetails,Region")] Client client)
+        public async Task<IActionResult> Create(
+            [Bind("Id,Name,ContactDetails,Region")] Client client)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                _context.Add(client);
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = "Client created successfully.";
-
-                return RedirectToAction(nameof(Index));
+                return View(client);
             }
 
-            return View(client);
+            var result = await _apiClient.CreateClientAsync(client);
+
+            if (!result.Success)
+            {
+                ModelState.AddModelError("", result.ErrorMessage!);
+                return View(client);
+            }
+
+            TempData["SuccessMessage"] = "Client created successfully.";
+            return RedirectToAction(nameof(Index));
         }
 
         public async Task<IActionResult> Edit(int? id)
@@ -66,14 +64,9 @@ namespace TechMove.Controllers
                 return NotFound();
             }
 
-            var client = await _context.Clients.FindAsync(id);
+            var client = await _apiClient.GetClientAsync(id.Value);
 
-            if (client == null)
-            {
-                return NotFound();
-            }
-
-            return View(client);
+            return client == null ? NotFound() : View(client);
         }
 
         [HttpPost]
@@ -87,29 +80,21 @@ namespace TechMove.Controllers
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    _context.Update(client);
-                    await _context.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = "Client updated successfully.";
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ClientExists(client.Id))
-                    {
-                        return NotFound();
-                    }
-
-                    throw;
-                }
-
-                return RedirectToAction(nameof(Index));
+                return View(client);
             }
 
-            return View(client);
+            var result = await _apiClient.UpdateClientAsync(client);
+
+            if (!result.Success)
+            {
+                ModelState.AddModelError("", result.ErrorMessage!);
+                return View(client);
+            }
+
+            TempData["SuccessMessage"] = "Client updated successfully.";
+            return RedirectToAction(nameof(Index));
         }
 
         public async Task<IActionResult> Delete(int? id)
@@ -119,37 +104,27 @@ namespace TechMove.Controllers
                 return NotFound();
             }
 
-            var client = await _context.Clients
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var client = await _apiClient.GetClientAsync(id.Value);
 
-            if (client == null)
-            {
-                return NotFound();
-            }
-
-            return View(client);
+            return client == null ? NotFound() : View(client);
         }
 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var client = await _context.Clients.FindAsync(id);
+            var result = await _apiClient.DeleteClientAsync(id);
 
-            if (client != null)
+            if (result.Success)
             {
-                _context.Clients.Remove(client);
-                await _context.SaveChangesAsync();
-
                 TempData["SuccessMessage"] = "Client deleted successfully.";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.ErrorMessage;
             }
 
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool ClientExists(int id)
-        {
-            return _context.Clients.Any(e => e.Id == id);
         }
     }
 }

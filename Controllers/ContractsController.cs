@@ -1,50 +1,30 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using TechMove.Data;
 using TechMove.Models;
+using TechMove.Services;
 
 namespace TechMove.Controllers
 {
     public class ContractsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly TechMoveApiClient _apiClient;
 
-        public ContractsController(ApplicationDbContext context)
+        public ContractsController(TechMoveApiClient apiClient)
         {
-            _context = context;
+            _apiClient = apiClient;
         }
 
         public async Task<IActionResult> Index(
-            string statusSearch,
+            string? statusSearch,
             DateTime? startDate,
             DateTime? endDate)
         {
-            var contracts = _context.Contracts
-                .Include(c => c.Client)
-                .AsQueryable();
+            var contracts = await _apiClient.GetContractsAsync(
+                statusSearch,
+                startDate,
+                endDate);
 
-            if (!string.IsNullOrEmpty(statusSearch))
-            {
-                contracts = contracts.Where(c =>
-                    c.Status.Contains(statusSearch));
-            }
-
-            if (startDate.HasValue)
-            {
-                contracts = contracts.Where(c =>
-                    c.StartDate >= startDate.Value);
-            }
-
-            if (endDate.HasValue)
-            {
-                var inclusiveEndDate = endDate.Value.Date.AddDays(1);
-
-                contracts = contracts.Where(c =>
-                    c.EndDate < inclusiveEndDate);
-            }
-
-            return View(await contracts.ToListAsync());
+            return View(contracts);
         }
 
         public async Task<IActionResult> Details(int? id)
@@ -54,23 +34,14 @@ namespace TechMove.Controllers
                 return NotFound();
             }
 
-            var contract = await _context.Contracts
-                .Include(c => c.Client)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var contract = await _apiClient.GetContractAsync(id.Value);
 
-            if (contract == null)
-            {
-                return NotFound();
-            }
-
-            return View(contract);
+            return contract == null ? NotFound() : View(contract);
         }
 
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            ViewData["ClientId"] =
-                new SelectList(_context.Clients, "Id", "Name");
-
+            await PopulateClientsAsync();
             return View();
         }
 
@@ -79,7 +50,7 @@ namespace TechMove.Controllers
         public async Task<IActionResult> Create(
             [Bind("Id,StartDate,EndDate,Status,ServiceLevel,AgreementFilePath,ClientId")]
             Contract contract,
-            IFormFile signedAgreement)
+            IFormFile? signedAgreement)
         {
             if (signedAgreement != null)
             {
@@ -88,56 +59,33 @@ namespace TechMove.Controllers
 
                 if (extension != ".pdf")
                 {
-                    ModelState.AddModelError(
-                        "",
-                        "Only PDF files are allowed.");
+                    ModelState.AddModelError("", "Only PDF files are allowed.");
                 }
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                if (signedAgreement != null)
-                {
-                    var uploadsFolder =
-                        Path.Combine(
-                            Directory.GetCurrentDirectory(),
-                            "wwwroot/uploads");
-
-                    Directory.CreateDirectory(uploadsFolder);
-
-                    var uniqueFileName =
-                        Guid.NewGuid().ToString() + "_" +
-                        signedAgreement.FileName;
-
-                    var filePath =
-                        Path.Combine(uploadsFolder, uniqueFileName);
-
-                    using (var fileStream =
-                           new FileStream(filePath, FileMode.Create))
-                    {
-                        await signedAgreement.CopyToAsync(fileStream);
-                    }
-
-                    contract.AgreementFilePath =
-                        "/uploads/" + uniqueFileName;
-                }
-
-                _context.Add(contract);
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = "Contract created successfully.";
-
-                return RedirectToAction(nameof(Index));
+                await PopulateClientsAsync(contract.ClientId);
+                return View(contract);
             }
 
-            ViewData["ClientId"] =
-                new SelectList(
-                    _context.Clients,
-                    "Id",
-                    "Name",
-                    contract.ClientId);
+            if (signedAgreement != null)
+            {
+                contract.AgreementFilePath =
+                    await SaveSignedAgreementAsync(signedAgreement);
+            }
 
-            return View(contract);
+            var result = await _apiClient.CreateContractAsync(contract);
+
+            if (!result.Success)
+            {
+                ModelState.AddModelError("", result.ErrorMessage!);
+                await PopulateClientsAsync(contract.ClientId);
+                return View(contract);
+            }
+
+            TempData["SuccessMessage"] = "Contract created successfully.";
+            return RedirectToAction(nameof(Index));
         }
 
         public async Task<IActionResult> Edit(int? id)
@@ -147,20 +95,14 @@ namespace TechMove.Controllers
                 return NotFound();
             }
 
-            var contract = await _context.Contracts.FindAsync(id);
+            var contract = await _apiClient.GetContractAsync(id.Value);
 
             if (contract == null)
             {
                 return NotFound();
             }
 
-            ViewData["ClientId"] =
-                new SelectList(
-                    _context.Clients,
-                    "Id",
-                    "Name",
-                    contract.ClientId);
-
+            await PopulateClientsAsync(contract.ClientId);
             return View(contract);
         }
 
@@ -176,36 +118,41 @@ namespace TechMove.Controllers
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    _context.Update(contract);
-                    await _context.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = "Contract updated successfully.";
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ContractExists(contract.Id))
-                    {
-                        return NotFound();
-                    }
-
-                    throw;
-                }
-
-                return RedirectToAction(nameof(Index));
+                await PopulateClientsAsync(contract.ClientId);
+                return View(contract);
             }
 
-            ViewData["ClientId"] =
-                new SelectList(
-                    _context.Clients,
-                    "Id",
-                    "Name",
-                    contract.ClientId);
+            var result = await _apiClient.UpdateContractAsync(contract);
 
-            return View(contract);
+            if (!result.Success)
+            {
+                ModelState.AddModelError("", result.ErrorMessage!);
+                await PopulateClientsAsync(contract.ClientId);
+                return View(contract);
+            }
+
+            TempData["SuccessMessage"] = "Contract updated successfully.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateStatus(int id, string status)
+        {
+            var result = await _apiClient.UpdateContractStatusAsync(id, status);
+
+            if (result.Success)
+            {
+                TempData["SuccessMessage"] = "Contract status updated.";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.ErrorMessage;
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
         public async Task<IActionResult> Delete(int? id)
@@ -215,38 +162,57 @@ namespace TechMove.Controllers
                 return NotFound();
             }
 
-            var contract = await _context.Contracts
-                .Include(c => c.Client)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var contract = await _apiClient.GetContractAsync(id.Value);
 
-            if (contract == null)
-            {
-                return NotFound();
-            }
-
-            return View(contract);
+            return contract == null ? NotFound() : View(contract);
         }
 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var contract = await _context.Contracts.FindAsync(id);
+            var result = await _apiClient.DeleteContractAsync(id);
 
-            if (contract != null)
+            if (result.Success)
             {
-                _context.Contracts.Remove(contract);
-                await _context.SaveChangesAsync();
-
                 TempData["SuccessMessage"] = "Contract deleted successfully.";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.ErrorMessage;
             }
 
             return RedirectToAction(nameof(Index));
         }
 
-        private bool ContractExists(int id)
+        private async Task PopulateClientsAsync(int? selectedClientId = null)
         {
-            return _context.Contracts.Any(e => e.Id == id);
+            ViewData["ClientId"] = new SelectList(
+                await _apiClient.GetClientsAsync(),
+                "Id",
+                "Name",
+                selectedClientId);
+        }
+
+        private static async Task<string> SaveSignedAgreementAsync(
+            IFormFile signedAgreement)
+        {
+            var uploadsFolder =
+                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
+
+            Directory.CreateDirectory(uploadsFolder);
+
+            var uniqueFileName =
+                Guid.NewGuid() + "_" + signedAgreement.FileName;
+
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            await using var fileStream =
+                new FileStream(filePath, FileMode.Create);
+
+            await signedAgreement.CopyToAsync(fileStream);
+
+            return "/uploads/" + uniqueFileName;
         }
     }
 }

@@ -1,19 +1,14 @@
-using Microsoft.EntityFrameworkCore;
-using TechMove.Data;
 using TechMove.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add DbContext
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddHttpClient<TechMoveApiClient>(client =>
+{
+    var apiBaseUrl = builder.Configuration["ApiBaseUrl"]
+        ?? "http://localhost:5001/";
 
-// Add HttpClient for external API calls
-builder.Services.AddHttpClient();
-
-// Add custom services
-builder.Services.AddScoped<ContractStateService>();
+    client.BaseAddress = new Uri(apiBaseUrl);
+});
 
 // Add MVC
 builder.Services.AddControllersWithViews();

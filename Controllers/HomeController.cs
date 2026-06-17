@@ -1,30 +1,22 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TechMove.Data;
 using TechMove.Models;
+using TechMove.Services;
 
 namespace TechMove.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly TechMoveApiClient _apiClient;
 
-        public HomeController(ApplicationDbContext context)
+        public HomeController(TechMoveApiClient apiClient)
         {
-            _context = context;
+            _apiClient = apiClient;
         }
 
         public async Task<IActionResult> Index()
         {
-            var dashboard = new DashboardViewModel
-            {
-                TotalClients = await _context.Clients.CountAsync(),
-                TotalContracts = await _context.Contracts.CountAsync(),
-                TotalServiceRequests = await _context.ServiceRequests.CountAsync()
-            };
-
-            return View(dashboard);
+            return View(await _apiClient.GetDashboardAsync());
         }
 
         public IActionResult Privacy()
@@ -32,7 +24,10 @@ namespace TechMove.Controllers
             return View();
         }
 
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        [ResponseCache(
+            Duration = 0,
+            Location = ResponseCacheLocation.None,
+            NoStore = true)]
         public IActionResult Error()
         {
             return View(new ErrorViewModel

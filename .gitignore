@@ -6,3 +6,4 @@ obj/
 *.suo
 appsettings.Development.json
 wwwroot/uploads/
+TechnicalReflectionReport.md

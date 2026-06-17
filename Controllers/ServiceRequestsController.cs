@@ -1,8 +1,5 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using TechMove.Data;
 using TechMove.Models;
 using TechMove.Services;
 
@@ -10,26 +7,16 @@ namespace TechMove.Controllers
 {
     public class ServiceRequestsController : Controller
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ContractStateService _contractStateService;
+        private readonly TechMoveApiClient _apiClient;
 
-        public ServiceRequestsController(
-            ApplicationDbContext context,
-            IHttpClientFactory httpClientFactory,
-            ContractStateService contractStateService)
+        public ServiceRequestsController(TechMoveApiClient apiClient)
         {
-            _context = context;
-            _httpClientFactory = httpClientFactory;
-            _contractStateService = contractStateService;
+            _apiClient = apiClient;
         }
 
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext =
-                _context.ServiceRequests.Include(s => s.Contract);
-
-            return View(await applicationDbContext.ToListAsync());
+            return View(await _apiClient.GetServiceRequestsAsync());
         }
 
         public async Task<IActionResult> Details(int? id)
@@ -39,23 +26,15 @@ namespace TechMove.Controllers
                 return NotFound();
             }
 
-            var serviceRequest = await _context.ServiceRequests
-                .Include(s => s.Contract)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var serviceRequest =
+                await _apiClient.GetServiceRequestAsync(id.Value);
 
-            if (serviceRequest == null)
-            {
-                return NotFound();
-            }
-
-            return View(serviceRequest);
+            return serviceRequest == null ? NotFound() : View(serviceRequest);
         }
 
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            ViewData["ContractId"] =
-                new SelectList(_context.Contracts, "Id", "Status");
-
+            await PopulateContractsAsync();
             return View();
         }
 
@@ -65,44 +44,26 @@ namespace TechMove.Controllers
             [Bind("Id,Description,CostUSD,Status,ContractId")]
             ServiceRequest serviceRequest)
         {
-            var contract = await _context.Contracts
-                .FirstOrDefaultAsync(c => c.Id == serviceRequest.ContractId);
-
-            if (contract != null)
+            if (!ModelState.IsValid)
             {
-                var contractState =
-                    _contractStateService.GetState(contract.Status);
-
-                if (!contractState.CanCreateServiceRequest())
-                {
-                    ModelState.AddModelError(
-                        "",
-                        contractState.GetBlockedMessage());
-                }
+                await PopulateContractsAsync(serviceRequest.ContractId);
+                return View(serviceRequest);
             }
 
-            if (ModelState.IsValid)
+            var result =
+                await _apiClient.CreateServiceRequestAsync(serviceRequest);
+
+            if (!result.Success)
             {
-                serviceRequest.CostZAR =
-                    await ConvertUsdToZar(serviceRequest.CostUSD);
-
-                _context.Add(serviceRequest);
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] =
-                    "Service Request created successfully.";
-
-                return RedirectToAction(nameof(Index));
+                ModelState.AddModelError("", result.ErrorMessage!);
+                await PopulateContractsAsync(serviceRequest.ContractId);
+                return View(serviceRequest);
             }
 
-            ViewData["ContractId"] =
-                new SelectList(
-                    _context.Contracts,
-                    "Id",
-                    "Status",
-                    serviceRequest.ContractId);
+            TempData["SuccessMessage"] =
+                "Service Request created successfully.";
 
-            return View(serviceRequest);
+            return RedirectToAction(nameof(Index));
         }
 
         public async Task<IActionResult> Edit(int? id)
@@ -113,20 +74,14 @@ namespace TechMove.Controllers
             }
 
             var serviceRequest =
-                await _context.ServiceRequests.FindAsync(id);
+                await _apiClient.GetServiceRequestAsync(id.Value);
 
             if (serviceRequest == null)
             {
                 return NotFound();
             }
 
-            ViewData["ContractId"] =
-                new SelectList(
-                    _context.Contracts,
-                    "Id",
-                    "Status",
-                    serviceRequest.ContractId);
-
+            await PopulateContractsAsync(serviceRequest.ContractId);
             return View(serviceRequest);
         }
 
@@ -142,40 +97,26 @@ namespace TechMove.Controllers
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    serviceRequest.CostZAR =
-                        await ConvertUsdToZar(serviceRequest.CostUSD);
-
-                    _context.Update(serviceRequest);
-                    await _context.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] =
-                        "Service Request updated successfully.";
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ServiceRequestExists(serviceRequest.Id))
-                    {
-                        return NotFound();
-                    }
-
-                    throw;
-                }
-
-                return RedirectToAction(nameof(Index));
+                await PopulateContractsAsync(serviceRequest.ContractId);
+                return View(serviceRequest);
             }
 
-            ViewData["ContractId"] =
-                new SelectList(
-                    _context.Contracts,
-                    "Id",
-                    "Status",
-                    serviceRequest.ContractId);
+            var result =
+                await _apiClient.UpdateServiceRequestAsync(serviceRequest);
 
-            return View(serviceRequest);
+            if (!result.Success)
+            {
+                ModelState.AddModelError("", result.ErrorMessage!);
+                await PopulateContractsAsync(serviceRequest.ContractId);
+                return View(serviceRequest);
+            }
+
+            TempData["SuccessMessage"] =
+                "Service Request updated successfully.";
+
+            return RedirectToAction(nameof(Index));
         }
 
         public async Task<IActionResult> Delete(int? id)
@@ -185,90 +126,38 @@ namespace TechMove.Controllers
                 return NotFound();
             }
 
-            var serviceRequest = await _context.ServiceRequests
-                .Include(s => s.Contract)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var serviceRequest =
+                await _apiClient.GetServiceRequestAsync(id.Value);
 
-            if (serviceRequest == null)
-            {
-                return NotFound();
-            }
-
-            return View(serviceRequest);
+            return serviceRequest == null ? NotFound() : View(serviceRequest);
         }
 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var serviceRequest =
-                await _context.ServiceRequests.FindAsync(id);
+            var result = await _apiClient.DeleteServiceRequestAsync(id);
 
-            if (serviceRequest != null)
+            if (result.Success)
             {
-                _context.ServiceRequests.Remove(serviceRequest);
-
-                await _context.SaveChangesAsync();
-
                 TempData["SuccessMessage"] =
                     "Service Request deleted successfully.";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.ErrorMessage;
             }
 
             return RedirectToAction(nameof(Index));
         }
 
-        private async Task<decimal> ConvertUsdToZar(decimal usdAmount)
+        private async Task PopulateContractsAsync(int? selectedContractId = null)
         {
-            try
-            {
-                Console.WriteLine("API CALLED");
-
-                var client = _httpClientFactory.CreateClient();
-
-                var response = await client.GetAsync(
-                    "https://open.er-api.com/v6/latest/USD");
-
-                Console.WriteLine($"API STATUS: {response.StatusCode}");
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine("API FAILED - USING FALLBACK");
-
-                    return usdAmount * 18;
-                }
-
-                var json = await response.Content.ReadAsStringAsync();
-
-                Console.WriteLine("API RESPONSE RECEIVED");
-
-                var exchangeRateResponse =
-                    JsonSerializer.Deserialize<ExchangeRateResponse>(json);
-
-                if (exchangeRateResponse == null ||
-                    !exchangeRateResponse.Rates.ContainsKey("ZAR"))
-                {
-                    Console.WriteLine("INVALID API DATA - USING FALLBACK");
-
-                    return usdAmount * 18;
-                }
-
-                var zarRate = exchangeRateResponse.Rates["ZAR"];
-
-                Console.WriteLine($"ZAR RATE: {zarRate}");
-
-                return usdAmount * zarRate;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"ERROR: {ex.Message}");
-
-                return usdAmount * 18;
-            }
-        }
-
-        private bool ServiceRequestExists(int id)
-        {
-            return _context.ServiceRequests.Any(e => e.Id == id);
+            ViewData["ContractId"] = new SelectList(
+                await _apiClient.GetContractsAsync(),
+                "Id",
+                "Status",
+                selectedContractId);
         }
     }
 }
